@@ -62,6 +62,7 @@ typedef int (*jerasure_make_decoding_bitmatrix_func)
     (int, int, int, int *, int *, int *, int *);
 typedef void (*jerasure_bitmatrix_dotprod_func)
     (int, int, int *, int *, int,char **, char **, int, int);
+typedef void (*jerasure_exit)(void);
 
 /*
  * ToDo (KMG): Should we make this a parameter, or is that
@@ -87,6 +88,7 @@ struct jerasure_rs_cauchy_descriptor {
     jerasure_erasures_to_erased_func jerasure_erasures_to_erased;
     jerasure_make_decoding_bitmatrix_func jerasure_make_decoding_bitmatrix;
     jerasure_bitmatrix_dotprod_func jerasure_bitmatrix_dotprod;
+    jerasure_exit jerasure_exit;
 
     /* fields needed to hold state */
     int *matrix;
@@ -277,10 +279,18 @@ static void * jerasure_rs_cauchy_init(struct ec_backend_args *args,
         jerasure_erasures_to_erased_func erasedp; 
         jerasure_make_decoding_bitmatrix_func decodematrixp;
         jerasure_bitmatrix_dotprod_func dotprodp;
+        jerasure_exit jexit;
         void *vptr;
     } func_handle = {.vptr = NULL};
     
     /* fill in function addresses */
+    func_handle.vptr = NULL;
+    func_handle.vptr = dlsym(backend_sohandle, "reed_sol_exit");
+    desc->jerasure_exit = func_handle.jexit;
+    if (NULL == desc->jerasure_exit) {
+        goto error;
+    }
+
     func_handle.vptr = NULL;
     func_handle.vptr = dlsym(backend_sohandle, "jerasure_bitmatrix_encode");
     desc->jerasure_bitmatrix_encode = func_handle.encodep;
@@ -413,6 +423,7 @@ static int jerasure_rs_cauchy_exit(void *desc)
 {
     struct jerasure_rs_cauchy_descriptor *jerasure_desc = 
         (struct jerasure_rs_cauchy_descriptor*)desc;
+    jerasure_desc->jerasure_exit();
     free_rs_cauchy_desc(jerasure_desc);
     return 0;
 }

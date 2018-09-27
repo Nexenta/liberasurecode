@@ -55,6 +55,7 @@ typedef int (*jerasure_matrix_decode_func)(int, int, int, int *, int, int*, char
 typedef int (*jerasure_make_decoding_matrix_func)(int, int, int, int *, int *, int *, int *);
 typedef int * (*jerasure_erasures_to_erased_func)(int, int, int *);
 typedef void (*jerasure_matrix_dotprod_func)(int, int, int *,int *, int,char **, char **, int);
+typedef void (*jerasure_exit)(void);
 
 struct jerasure_rs_vand_descriptor {
     /* calls required for init */
@@ -70,6 +71,7 @@ struct jerasure_rs_vand_descriptor {
     jerasure_make_decoding_matrix_func jerasure_make_decoding_matrix;
     jerasure_erasures_to_erased_func jerasure_erasures_to_erased;
     jerasure_matrix_dotprod_func jerasure_matrix_dotprod;
+    jerasure_exit jerasure_exit;
 
     /* fields needed to hold state */
     int *matrix;
@@ -239,11 +241,19 @@ static void * jerasure_rs_vand_init(struct ec_backend_args *args,
         jerasure_make_decoding_matrix_func decodematrixp;
         jerasure_erasures_to_erased_func erasep;
         jerasure_matrix_dotprod_func dotprodp;
+        jerasure_exit jexit;
         void *vptr;
     } func_handle = {.vptr = NULL};
 
 
     /* fill in function addresses */
+    func_handle.vptr = NULL;
+    func_handle.vptr = dlsym(backend_sohandle, "reed_sol_exit");
+    desc->jerasure_exit = func_handle.jexit;
+    if (NULL == desc->jerasure_exit) {
+        goto error;
+    }
+
     func_handle.vptr = NULL;
     func_handle.vptr = dlsym(backend_sohandle, "jerasure_matrix_encode");
     desc->jerasure_matrix_encode = func_handle.encodep;
@@ -322,6 +332,7 @@ static int jerasure_rs_vand_exit(void *desc)
     struct jerasure_rs_vand_descriptor *jerasure_desc = NULL;
     
     jerasure_desc = (struct jerasure_rs_vand_descriptor*) desc;
+    jerasure_desc->jerasure_exit();
     free(jerasure_desc->matrix);
     free(jerasure_desc);
 

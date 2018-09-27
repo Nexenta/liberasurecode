@@ -578,6 +578,8 @@ static int isa_l_rs_vand_exit(void *desc)
 
     isa_l_desc = (struct isa_l_rs_vand_descriptor*) desc;
 
+    free(isa_l_desc->matrix);
+
     free(isa_l_desc);
 
     return 0;
