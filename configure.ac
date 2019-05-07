@@ -90,6 +90,13 @@ fi
 AC_SUBST(GCOV_FLAGS)
 AC_SUBST(GCOV_LDFLAGS)
 
+AC_ARG_ENABLE([avx], [  --disable-avx           do not use AVX instructions],
+[case "${enableval}" in
+    yes) avx=true ;;
+    no)  avx=false ;;
+    *) AC_MSG_ERROR([bad value ${enableval} for --disable-avx]) ;;
+esac],[avx=true])
+
 dnl Expand the sources and objects needed to build the library
 AC_SUBST(ac_aux_dir)
 AC_SUBST(OBJECTS)
@@ -133,7 +140,8 @@ if [[ $? == "0" ]]; then
   AC_MSG_RESULT([$CC supports -msse4.2])
 fi
 $CC - -E -mavx </dev/null >/dev/null 2>&1
-if [[ $? == "0" ]]; then
+echo AVX=$avx
+if [[ $avx == "true" -a $? == "0" ]]; then
   SUPPORTED_FLAGS="$SUPPORTED_FLAGS -mavx"
   AC_MSG_RESULT([$CC supports -mavx])
 fi
